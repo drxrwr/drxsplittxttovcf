@@ -44,21 +44,21 @@ document.getElementById("splitVCFButton").addEventListener("click", function () 
 
   chunks.forEach((chunk, chunkIndex) => {
     const fileIndex = startNumber + chunkIndex;
-    const currentFileName = `${fileName || fileIndex}${additionalFileName ? " " + additionalFileName : ""}`;
+    const currentFileName = `${fileName}${fileIndex}${additionalFileName ? " " + additionalFileName : ""}`;
     let vcfContent = "";
 
     chunk.forEach((number, idx) => {
-      const globalIndex = chunkIndex * contactsPerFile + idx + 1;
-
+      const localIndex = idx + 1; // urutan reset tiap file
       let contactName = "";
+
       if (useCustomName) {
         if (nameBase) {
-          contactName = `${nameBase} ${fileName || ""}${fileIndex} ${additionalFileName || ""} ${globalIndex}`.trim();
+          contactName = `${nameBase} ${fileName}${fileIndex} ${additionalFileName} ${localIndex}`.trim();
         } else {
-          contactName = `${fileName || ""}${fileIndex} ${additionalFileName || ""} ${globalIndex}`.trim();
+          contactName = `${fileName}${fileIndex} ${additionalFileName} ${localIndex}`.trim();
         }
       } else {
-        contactName = nameBase ? `${nameBase} ${globalIndex}` : `kontak ${globalIndex}`;
+        contactName = nameBase ? `${nameBase} ${startNumber + chunkIndex * contactsPerFile + idx}` : `kontak ${startNumber + chunkIndex * contactsPerFile + idx}`;
       }
 
       vcfContent += `BEGIN:VCARD\nVERSION:3.0\nFN:${contactName}\nTEL:${number}\nEND:VCARD\n`;
@@ -67,7 +67,7 @@ document.getElementById("splitVCFButton").addEventListener("click", function () 
     const blob = new Blob([vcfContent], { type: "text/vcard" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${fileName || fileIndex}${additionalFileName ? " " + additionalFileName : ""}.vcf`;
+    link.download = `${currentFileName}.vcf`;
     link.textContent = `Download ${link.download}`;
     outputDiv.appendChild(link);
   });
