@@ -1,3 +1,15 @@
+// Ganti § jadi spasi
+function parseWithSpasi(text) {
+  return text.replace(/§/g, ' ').trim();
+}
+
+// Tambah + jika tidak diawali + atau 0
+function formatPhoneNumber(num) {
+  if (num.startsWith('+') || num.startsWith('0')) return num;
+  return '+' + num;
+}
+
+// Preview isi file TXT
 document.getElementById("txtFileInput").addEventListener("change", function () {
   const file = this.files[0];
   if (!file) return;
@@ -15,13 +27,17 @@ document.getElementById("txtFileInput").addEventListener("change", function () {
   reader.readAsText(file);
 });
 
+// Tombol Split VCF
 document.getElementById("splitVCFButton").addEventListener("click", function () {
   const rawNumbers = document.getElementById("numberTextArea").value.trim();
   const nameBase = document.getElementById("contactNameInput").value.trim();
   const contactsPerFile = parseInt(document.getElementById("contactsPerFile").value) || 100;
-  const startNumber = parseInt(document.getElementById("startNumberInput").value) || 1;
-  const fileName = document.getElementById("splitFileNameInput").value.trim();
-  const additionalFileName = document.getElementById("additionalFileNameInput").value.trim();
+
+  let startNumber = parseInt(document.getElementById("startNumberInput").value);
+  if (isNaN(startNumber)) startNumber = 1; // boleh minus, default 1 kalau kosong
+
+  const fileName = parseWithSpasi(document.getElementById("splitFileNameInput").value);
+  const additionalFileName = parseWithSpasi(document.getElementById("additionalFileNameInput").value);
   const useCustomName = document.getElementById("customNameCheckbox").checked;
 
   if (!rawNumbers) {
@@ -31,7 +47,7 @@ document.getElementById("splitVCFButton").addEventListener("click", function () 
 
   const numbers = rawNumbers
     .split(/\r?\n/)
-    .map((n) => n.trim())
+    .map((n) => formatPhoneNumber(n.trim()))
     .filter((n) => n);
 
   const chunks = [];
@@ -44,21 +60,25 @@ document.getElementById("splitVCFButton").addEventListener("click", function () 
 
   chunks.forEach((chunk, chunkIndex) => {
     const fileIndex = startNumber + chunkIndex;
-    const currentFileName = `${fileName}${fileIndex}${additionalFileName ? " " + additionalFileName : ""}`;
+    const currentFileName = `${fileName} ${fileIndex}${additionalFileName ? " " + additionalFileName : ""}`.trim();
     let vcfContent = "";
 
     chunk.forEach((number, idx) => {
-      const localIndex = idx + 1; // urutan reset tiap file
+      const localIndex = idx + 1;
+      const globalIndex = chunkIndex * contactsPerFile + idx + 1;
+
       let contactName = "";
 
       if (useCustomName) {
         if (nameBase) {
-          contactName = `${nameBase} ${fileName}${fileIndex} ${additionalFileName} ${localIndex}`.trim();
+          contactName = `${parseWithSpasi(nameBase)} ${fileName} ${fileIndex} ${additionalFileName} ${localIndex}`.trim();
         } else {
-          contactName = `${fileName}${fileIndex} ${additionalFileName} ${localIndex}`.trim();
+          contactName = `${fileName} ${fileIndex} ${additionalFileName} ${localIndex}`.trim();
         }
       } else {
-        contactName = nameBase ? `${nameBase} ${startNumber + chunkIndex * contactsPerFile + idx}` : `kontak ${startNumber + chunkIndex * contactsPerFile + idx}`;
+        contactName = nameBase
+          ? `${parseWithSpasi(nameBase)} ${globalIndex}`
+          : `kontak ${globalIndex}`;
       }
 
       vcfContent += `BEGIN:VCARD\nVERSION:3.0\nFN:${contactName}\nTEL:${number}\nEND:VCARD\n`;
@@ -70,6 +90,7 @@ document.getElementById("splitVCFButton").addEventListener("click", function () 
     link.download = `${currentFileName}.vcf`;
     link.textContent = `Download ${link.download}`;
     outputDiv.appendChild(link);
+    outputDiv.appendChild(document.createElement("br"));
   });
 
   console.log("Split VCF selesai.");
